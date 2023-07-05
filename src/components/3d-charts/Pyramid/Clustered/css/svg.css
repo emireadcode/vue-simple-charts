@@ -1,0 +1,15 @@
+#svg-container{
+  max-width:840px;
+  min-width:300px;
+  width:100%;
+}
+@media screen and (max-width:700px){
+  #svg-container{
+    max-width:550px;
+  }
+}
+@media screen and (max-width:551px){
+  #svg-container{
+    max-width:99%;
+  }
+}
