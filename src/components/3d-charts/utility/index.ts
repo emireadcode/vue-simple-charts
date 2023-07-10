@@ -475,21 +475,21 @@ function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, serie
   w[2] = w[0] + frontwidth;
   w[3] = w[1] + frontwidth;
 
-  return {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap};
+  return {w, h};
 }
 
 function getBaseDimensionAndValueHeight(axis: number[], width: number, value: number, valueindex: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: DepthControllerTypeFor3D, padding: PaddingType, serieslength: number, rowlength: number) {
   let 
     extra = getExtraUnit(value, valueindex, yaxisunit, axis),
-    {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap} = getBaseHeightAndWidthAtOrigin(width, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+    {w, h} = getBaseHeightAndWidthAtOrigin(width, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
   ;
   h[2] = ((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra);
   h[3] = ((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra);
-  return {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap};
+  return {w, h};
 }
 
 function drawColumn(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], serieslength: number, rowlength: number) {
-  let  
+  let 
     originindex = getOriginIndex(axis),
     valueindex = getValueIndex(axis, value), 
     {w, h} = getBaseDimensionAndValueHeight(axis, width, value, valueindex, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
@@ -498,26 +498,68 @@ function drawColumn(rowindex: number, seriesindex: number, value: number, width:
     if(valueindex < originindex) {
       //positive axis
       return {
-        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+h[3]+' '+w[1]+','+h[3]+' '+w[1]+','+h[1],
-        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3],
-        top: w[1]+','+h[3]+' '+w[0]+','+h[2]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3]
+        face: (
+          parseInt(
+            (
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (h[3]+h[2])/2.0
+              )
+            )+''
+          ) > 0?
+          'M '+w[3]+' '+h[1]+' l 0 '+(
+            -1*(
+              h[1]-h[3]
+            )
+          )
+          +' '+(-1*(w[3] - w[1]))+' 0 0 ' + (
+            h[1]-h[3]
+          )
+          +' '+(w[3] - w[1]) + ' 0 '
+          +'M '+w[3]+' '+h[1]+' l '+(w[2]-w[3])+' '+(-1*(h[1]-h[0]))+' 0 '+(-1*(h[0]-h[2]))+' '+(-1*(w[2]-w[3]))+' '+(h[3]-h[2])+ ' 0 '+(h[1]-h[3])
+          +' M '+w[1]+' '+h[3]+' l '+(w[0]-w[1])+' '+(-1*(h[3]-h[2]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[3]-h[2])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+          :
+          'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+        )
       }
     }
     else {
       //negative axis
       return {
-        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+h[3]+' '+w[1]+','+h[3]+' '+w[1]+','+h[1],
-        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3],
-        top: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[0]+','+h[0]+' '+w[1]+','+h[1]
+        face: (
+          parseInt(
+            (
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (h[0]+h[1])/2.0
+              )
+            )+''
+          ) > 0?
+          'M '+w[3]+' '+h[1]+' l 0 '+(
+            (
+              h[3]-h[1]
+            )
+          )
+          +' '+(-1*(w[3] - w[1]))+' 0 0 ' + (
+            -1*(
+              h[3]-h[1]
+            )
+          )
+          +' '+(w[3] - w[1]) + ' 0 '
+          +'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+          + ' M '+w[3]+' '+h[1]+' l '+(w[2]-w[3])+' '+(-1*(h[1]-h[0]))+' 0 '+(h[2]-h[0])+' '+(-1*(w[2]-w[3]))+' '+(h[3]-h[2])
+          :
+          'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+        )
       };
     }
   }
   else {
     //value === 0
     return {
-      front: '',
-      right: '',
-      top: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[0]+','+h[0]+' '+w[1]+','+h[1]
+      face: 'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
     };
   }
 }
@@ -538,15 +580,11 @@ function drawCone(rowindex: number, seriesindex: number, value: number, width: n
               (
                 (h[0]+h[1])/2.0
               )-(
-                (
-                  h[3]
-                  +
-                  h[2]
-                )/2.0
+                (h[3]+h[2])/2.0
               )
             )+''
           ) > 0?
-          ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' l '+(
+          'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' l '+(
               ((w[2]+w[3])/2.0) - (
                 (
                   ((w[2]+w[3])/2.0) + ((w[0]+w[1])/2.0)
@@ -557,11 +595,7 @@ function drawCone(rowindex: number, seriesindex: number, value: number, width: n
                 (
                   (h[0]+h[1])/2.0
                 )-(
-                  (
-                    h[3]
-                    +
-                    h[2]
-                  )/2.0
+                  (h[3]+h[2])/2.0
                 )
               )
             )+' '+(
@@ -574,18 +608,13 @@ function drawCone(rowindex: number, seriesindex: number, value: number, width: n
               (
                 (h[0]+h[1])/2.0
               )-(
-                (
-                  h[3]
-                  +
-                  h[2]
-                )/2.0
+                (h[3]+h[2])/2.0
               )
             ) 
             + ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
             : 
             'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0'
-            + 'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
-
+            +' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
           ) 
       }
     }
@@ -663,11 +692,7 @@ function drawCylinder(rowindex: number, seriesindex: number, value: number, widt
               (
                 (h[0]+h[1])/2.0
               )-(
-                (
-                  h[3]
-                  +
-                  h[2]
-                )/2.0
+                (h[3]+h[2])/2.0
               )
             )+''
           ) > 0?
@@ -720,11 +745,7 @@ function drawCylinder(rowindex: number, seriesindex: number, value: number, widt
               (
                 (h[3]+h[2])/2.0
               )-(
-                (
-                  h[0]
-                  +
-                  h[1]
-                )/2.0
+                (h[0]+h[1])/2.0
               )
             )
           )
@@ -733,11 +754,7 @@ function drawCylinder(rowindex: number, seriesindex: number, value: number, widt
               (
                 (h[3]+h[2])/2.0
               )-(
-                (
-                  h[0]
-                  +
-                  h[1]
-                )/2.0
+                (h[0]+h[1])/2.0
               )
             )
           )
@@ -865,12 +882,10 @@ function generateRandomColor() {
     gold: "#ffd700",
     green: "#008000",
     indigo: "#4b0082",
-    khaki: "#f0e68c",
     lime: "#00ff00",
     magenta: "#ff00ff",
     olive: "#808000",
     orange: "#ffa500",
-    pink: "#ffc0cb",
     purple: "#800080",
     red: "#ff0000",
     yellow: "#ffff00"

@@ -10,7 +10,7 @@ const
   drawboxandplot = draw3DBoxAndPlot3DBoxData(
     'COLUMN', 
     10, 
-    {width: 200, height: 80}, 
+    {width: 200, height: 200}, 
     10, 
     {top: 10, bottom: 20, left: 10, right: 15}, 
     props.data
@@ -68,7 +68,7 @@ const
         </template>
       </g>
       <template v-for="(originplane, i) in drawboxandplot.originplane.plane">
-        <g stroke="blue">
+        <g stroke="blue" style="stroke-width:3;">
           <line :x1="originplane.x1" :x2="originplane.x2" :y1="originplane.y1" :y2="originplane.y2"></line>
         </g>
       </template>

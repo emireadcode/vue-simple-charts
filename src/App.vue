@@ -1,13 +1,13 @@
 <script setup lang="ts">
-//import Column from './components/3d-charts/Column/Column.vue';
-import Cone from './components/3d-charts/Cone/Cone.vue';
+import Column from './components/3d-charts/Column/Column.vue';
+//import Cone from './components/3d-charts/Cone/Cone.vue';
 //import Cylinder from './components/3d-charts/Cylinder/Cylinder.vue';
 //import Pyramid from './components/3d-charts/Pyramid/Pyramid.vue';
 </script>
 
 <template>
   <div style="height:600px; width:900px; border: 1px solid black;">
-    <cone :data="
+    <column :data="
       [
         {
           name:'Category 1',
@@ -169,7 +169,7 @@ import Cone from './components/3d-charts/Cone/Cone.vue';
             },
             {
               name:'Series 3',
-              value:-3
+              value:-200
             },
             {
               name:'Series 4',
@@ -178,8 +178,8 @@ import Cone from './components/3d-charts/Cone/Cone.vue';
           ]
         }
       ]
-    " 
-    ></cone>
+    "
+    ></column>
   </div>
 </template>
 
