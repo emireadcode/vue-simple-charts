@@ -1,10 +1,13 @@
 <script setup lang="ts">
-import Column from './components/3d-charts/Column/Column.vue';
+//import Column from './components/3d-charts/Column/Column.vue';
+import Cone from './components/3d-charts/Cone/Cone.vue';
+//import Cylinder from './components/3d-charts/Cylinder/Cylinder.vue';
+//import Pyramid from './components/3d-charts/Pyramid/Pyramid.vue';
 </script>
 
 <template>
   <div style="height:600px; width:900px; border: 1px solid black;">
-    <column :data="
+    <cone :data="
       [
         {
           name:'Category 1',
@@ -176,7 +179,7 @@ import Column from './components/3d-charts/Column/Column.vue';
         }
       ]
     " 
-    ></column>
+    ></cone>
   </div>
 </template>
 

@@ -1,8 +1,8 @@
-import type { DataTable_3D_Charts_Type, LineType } from "../type";
+import type { PlaneType, DataTableType, LineType, MaxMinType, AxisStatusType, PaddingType, DepthControllerTypeFor3D } from "../type";
 import { map, reduce, from, mergeMap, min, max, findIndex, } from 'rxjs';
 import { type Ref} from "vue";
 
-function findMin(column: DataTable_3D_Charts_Type) {
+function findMin(column: DataTableType) {
   let minN = column[0].series[0].value;
   from(column)
     .pipe(mergeMap(item => item.series))
@@ -16,7 +16,7 @@ function findMin(column: DataTable_3D_Charts_Type) {
   return minN;
 }
 
-function findMax(column: DataTable_3D_Charts_Type) {
+function findMax(column: DataTableType) {
   let maxN = column[0].series[0].value;
   from(column)
     .pipe(mergeMap(item => item.series))
@@ -30,14 +30,14 @@ function findMax(column: DataTable_3D_Charts_Type) {
   return maxN;
 }
 
-function findMaxAndMin(column: DataTable_3D_Charts_Type) {
+function findMaxAndMin(column: DataTableType) {
   return {
     max: findMax(column), 
     min: findMin(column)
   };
 }
 
-function getHighestForFirstCalculation(minormax: number | {max: number; min: number;}, axistype: 'NEGATIVE' | 'POSITIVE' | 'BOTH') {
+function getHighestForFirstCalculation(minormax: number | MaxMinType, axistype: AxisStatusType) {
   return (
     axistype !== 'BOTH'?
     (
@@ -45,13 +45,13 @@ function getHighestForFirstCalculation(minormax: number | {max: number; min: num
     )
     : 
     (
-      ((minormax as {max: number; min: number;}).max >= -1*(minormax as {max: number; min: number;}).min)?
-      (minormax as {max: number; min: number;}).max : -1*(minormax as {max: number; min: number;}).min
+      ((minormax as MaxMinType).max >= -1*(minormax as MaxMinType).min)?
+      (minormax as MaxMinType).max : -1*(minormax as MaxMinType).min
     )
   );
 }
 
-function getNegativeOrPositiveAxisNumber(first: number, minormax: number | {max: number; min: number;}, axistype: 'NEGATIVE' | 'POSITIVE' | 'BOTH') {
+function getNegativeOrPositiveAxisNumber(first: number, minormax: number | MaxMinType, axistype: AxisStatusType) {
   let axis: number[] = [];
   if(axistype !== 'BOTH') {
     let 
@@ -66,14 +66,14 @@ function getNegativeOrPositiveAxisNumber(first: number, minormax: number | {max:
     while((newfirst-first) <= highest);
   }
   else {
-    let paxis = getNegativeOrPositiveAxisNumber(first, (minormax as {max: number; min: number;}).max, 'POSITIVE');
-    let naxis = getNegativeOrPositiveAxisNumber(first, (minormax as {max: number; min: number;}).min, 'NEGATIVE');
+    let paxis = getNegativeOrPositiveAxisNumber(first, (minormax as MaxMinType).max, 'POSITIVE');
+    let naxis = getNegativeOrPositiveAxisNumber(first, (minormax as MaxMinType).min, 'NEGATIVE');
     axis = [...paxis, 0, ...naxis];
   }
   return axistype==='POSITIVE'? axis.reverse() : axis;
 }
 
-function getZeroDotSomethingAxisNumber(minormax: number | {max: number; min: number;}, axistype: 'POSITIVE' | 'NEGATIVE' | 'BOTH') {
+function getZeroDotSomethingAxisNumber(minormax: number | MaxMinType, axistype: AxisStatusType) {
   let distortedhighest = getHighestForFirstCalculation(minormax, axistype), multiplier = 1;
   do {
     distortedhighest*=10;
@@ -94,7 +94,7 @@ function getZeroDotSomethingAxisNumber(minormax: number | {max: number; min: num
   );
 }
 
-function getZeroDotSomethingFirstAxisNumber(multiplier: number, distortedhighest: number, minormax: number | {max: number; min: number;}, axistype: 'POSITIVE' | 'NEGATIVE' | 'BOTH') {
+function getZeroDotSomethingFirstAxisNumber(multiplier: number, distortedhighest: number, minormax: number | MaxMinType, axistype: AxisStatusType) {
   let 
     highest = multiplier*getHighestForFirstCalculation(minormax, axistype), 
     last = (highest > parseInt(distortedhighest+''))? (
@@ -141,7 +141,7 @@ function getAtleastOneDotSomethingFirstAxisNumber(multiplier: number, distortedh
   }
 }
 
-function getAtleastOneDotSomethingAxisNumber(minormax: number | {max: number; min: number;}, axistype: 'POSITIVE' | 'NEGATIVE' | 'BOTH') {
+function getAtleastOneDotSomethingAxisNumber(minormax: number | MaxMinType, axistype: AxisStatusType) {
   let distortedhighest = getHighestForFirstCalculation(minormax, axistype), multiplier = 1;
   do {
     distortedhighest/=10;
@@ -160,7 +160,7 @@ function getAtleastOneDotSomethingAxisNumber(minormax: number | {max: number; mi
   );
 }
 
-function getAxisNumber(minormax: number | {max: number; min: number;}, axistype: 'NEGATIVE' | 'POSITIVE' | 'BOTH') {
+function getAxisNumber(minormax: number | MaxMinType, axistype: AxisStatusType) {
   let highest = parseInt(getHighestForFirstCalculation(minormax, axistype)+'');
   if(highest === 0) {
     return getZeroDotSomethingAxisNumber(minormax, axistype);
@@ -184,7 +184,7 @@ function calculateLongestAxisNumberLength(axis: number[], fontsize: number) {
   return longestlength;
 }
 
-function calculateAxisNumber(column: DataTable_3D_Charts_Type) {
+function calculateAxisNumber(column: DataTableType) {
   const {max, min} = findMaxAndMin(column);
   if(max<0 && min<0) {
     return [0, ...getAxisNumber(min, 'NEGATIVE')];
@@ -232,7 +232,7 @@ function getChartAreaDimension() {
   };
 }
 
-function get3DBoxDimension(space: number = 10, depth: {width: number; height: number;}, fontsize: number, padding: {top: number; bottom: number; left: number; right: number;},  seriessize: number, longestaxisnumberlength: number) {
+function get3DBoxDimension(space: number = 10, depth: DepthControllerTypeFor3D, fontsize: number, padding: PaddingType,  seriessize: number, longestaxisnumberlength: number) {
   const { width, height} = getChartAreaDimension();
   return { 
     width: width - (padding.right + padding.left) - measureText(('Series ' + seriessize), fontsize) - longestaxisnumberlength - depth.width - (2*space), 
@@ -240,7 +240,7 @@ function get3DBoxDimension(space: number = 10, depth: {width: number; height: nu
   };
 }
 
-function drawTraceLines(plottype: 'SIDE' | 'FRONT', height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number, axis: number[], width?: number | undefined) {
+function drawTraceLines(plottype: 'SIDE' | 'FRONT', height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number, axis: number[], width?: number | undefined) {
   const tracelines: LineType[] = [], axisunit = height / (axis.length - 1);
   from(axis)
     .pipe(
@@ -265,7 +265,7 @@ function drawTraceLines(plottype: 'SIDE' | 'FRONT', height: number, space: numbe
   return tracelines;
 }
 
-function drawSidePlane(height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number, axis: number[]) {
+function drawSidePlane(height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number, axis: number[]) {
   return {
     hastraceline: true,
     tracelines: drawTraceLines('SIDE', height, space, depth, padding, longestaxisnumberlength, axis),
@@ -298,7 +298,7 @@ function drawSidePlane(height: number, space: number = 10, depth: {width: number
   };
 }
 
-function drawFrontPlane(width: number, height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number, axis: number[]) {
+function drawFrontPlane(width: number, height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number, axis: number[]) {
   return {
     hastraceline: true,
     tracelines: drawTraceLines('FRONT', height, space, depth, padding, longestaxisnumberlength, axis, width as number),
@@ -334,7 +334,7 @@ function drawFrontPlane(width: number, height: number, space: number = 10, depth
   };
 }
 
-function drawBottomPlane(width: number, height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number) {
+function drawBottomPlane(width: number, height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number) {
   return {
     hastraceline: false,
     plane: 
@@ -350,7 +350,7 @@ function drawBottomPlane(width: number, height: number, space: number = 10, dept
   };
 }
 
-function drawOriginPlane(width: number, height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number, axis: number[]) {
+function drawOriginPlane(width: number, height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number, axis: number[]) {
   let plane: LineType[] = [], axisunit = height / (axis.length - 1);
   from(axis)
     .pipe(
@@ -379,7 +379,7 @@ function drawOriginPlane(width: number, height: number, space: number = 10, dept
   };
 }
 
-function drawPlane(planetype: 'BOTTOM' | 'FRONT' | 'SIDE' | 'ORIGIN', width: number, height: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, longestaxisnumberlength: number, axis?: number[] | undefined) {
+function drawPlane(planetype: PlaneType, width: number, height: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, longestaxisnumberlength: number, axis?: number[] | undefined) {
   if(planetype === 'SIDE') {
     return drawSidePlane(height, space, depth, padding, longestaxisnumberlength, axis as number[]);
   }
@@ -394,7 +394,7 @@ function drawPlane(planetype: 'BOTTOM' | 'FRONT' | 'SIDE' | 'ORIGIN', width: num
   }
 }
 
-function draw3DBox(width: number, height: number, longestaxisnumberlength: number, space: number = 10, depth: {width: number; height: number;}, fontsize: number, padding: {top: number; bottom: number; left: number; right: number;}, axis: number[], column: DataTable_3D_Charts_Type) {
+function draw3DBox(width: number, height: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, fontsize: number, padding: PaddingType, axis: number[], column: DataTableType) {
   const {max, min} = findMaxAndMin(column), plane: {hastraceline: boolean; plane: LineType[] | string; tracelines?: LineType[] | undefined;}[] = [];
   //draw side plane
   plane.push(drawPlane('SIDE', width, height, space, depth, padding, longestaxisnumberlength, axis));
@@ -446,7 +446,7 @@ function getExtraUnit(value: number, valueindex: number, yaxisunit: number, axis
   return extraunit
 }
 
-function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, serieslength: number, rowlength: number) {
+function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: DepthControllerTypeFor3D, padding: PaddingType, serieslength: number, rowlength: number) {
   let  
     thetha = Math.atan(depth.height/depth.width),
     rightdepth = Math.sqrt((Math.pow(depth.height, 2) + Math.pow(depth.width, 2))),
@@ -475,31 +475,39 @@ function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, serie
   w[2] = w[0] + frontwidth;
   w[3] = w[1] + frontwidth;
 
-  return {w, h};
+  return {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap};
 }
 
-function drawColumn(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, axis: number[], serieslength: number, rowlength: number) {
+function getBaseDimensionAndValueHeight(axis: number[], width: number, value: number, valueindex: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: DepthControllerTypeFor3D, padding: PaddingType, serieslength: number, rowlength: number) {
+  let 
+    extra = getExtraUnit(value, valueindex, yaxisunit, axis),
+    {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap} = getBaseHeightAndWidthAtOrigin(width, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+  ;
+  h[2] = ((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra);
+  h[3] = ((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra);
+  return {w, h, rightwidth, thetha, rightgap, frontwidth, frontgap};
+}
+
+function drawColumn(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], serieslength: number, rowlength: number) {
   let  
     originindex = getOriginIndex(axis),
     valueindex = getValueIndex(axis, value), 
-    extra = getExtraUnit(value, valueindex, yaxisunit, axis),
-    {w, h} = getBaseHeightAndWidthAtOrigin(width, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+    {w, h} = getBaseDimensionAndValueHeight(axis, width, value, valueindex, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
   ;
-  console.log(value+' '+extra+' '+h[0]+' '+h[1]);
   if(value !== axis[originindex]) {
     if(valueindex < originindex) {
-      //positive
+      //positive axis
       return {
-        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[1]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[1]+','+h[1],
-        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[3]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra),
-        top: w[1]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[0]+','+((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[2]+','+((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[3]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)
+        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+h[3]+' '+w[1]+','+h[3]+' '+w[1]+','+h[1],
+        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3],
+        top: w[1]+','+h[3]+' '+w[0]+','+h[2]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3]
       }
     }
     else {
       //negative axis
       return {
-        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[1]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[1]+','+h[1],
-        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+((h[0] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra)+' '+w[3]+','+((h[1] - (yaxisunit*originindex)) + (yaxisunit*valueindex) + extra),
+        front: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[3]+','+h[3]+' '+w[1]+','+h[3]+' '+w[1]+','+h[1],
+        right: w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[2]+','+h[2]+' '+w[3]+','+h[3],
         top: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[0]+','+h[0]+' '+w[1]+','+h[1]
       };
     }
@@ -509,49 +517,478 @@ function drawColumn(rowindex: number, seriesindex: number, value: number, width:
     return {
       front: '',
       right: '',
-      top: ''
+      top: w[1]+','+h[1]+' '+w[3]+','+h[1]+' '+w[2]+','+h[0]+' '+w[0]+','+h[0]+' '+w[1]+','+h[1]
     };
   }
 }
 
-function drawCone() {
-
-}
-
-function drawCylinder() {
-
-}
-
-function drawPyramid() {
-
-}
-
-function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', width: number, height: number, longestaxisnumberlength: number, space: number = 10, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}, axis: number[], column: DataTable_3D_Charts_Type) {
+function drawCone(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], serieslength: number, rowlength: number) {
   let 
-    plots: {front: string; right: string; top: string;}[] = []
+    originindex = getOriginIndex(axis),
+    valueindex = getValueIndex(axis, value), 
+    {w, h} = getBaseDimensionAndValueHeight(axis, width, value, valueindex, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+  ;
+  if(value !== axis[originindex]) {
+    if(valueindex < originindex) {
+      //positive axis
+      return {
+        face: (
+          parseInt(
+            (
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (
+                  h[3]
+                  +
+                  h[2]
+                )/2.0
+              )
+            )+''
+          ) > 0?
+          ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' l '+(
+              ((w[2]+w[3])/2.0) - (
+                (
+                  ((w[2]+w[3])/2.0) + ((w[0]+w[1])/2.0)
+                )/2.0
+              )
+            )+' '+(
+              -1*(
+                (
+                  (h[0]+h[1])/2.0
+                )-(
+                  (
+                    h[3]
+                    +
+                    h[2]
+                  )/2.0
+                )
+              )
+            )+' '+(
+              (((w[2]+w[3])/2.0) - (
+                (
+                  ((w[2]+w[3])/2.0)+((w[0]+w[1])/2.0)
+                )/2.0
+              ))
+            )+' '+(
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (
+                  h[3]
+                  +
+                  h[2]
+                )/2.0
+              )
+            ) 
+            + ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
+            : 
+            'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0'
+            + 'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
+
+          ) 
+      }
+    }
+    else {
+      //negative axis
+      return {
+        face: 'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)
+        +' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
+        +' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)
+        +' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0' 
+        +(
+          parseInt(
+            (
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (h[0]+h[1])/2.0
+              )
+            )+''
+          ) > 0?
+          ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' l '+(
+            ((w[2]+w[3])/2.0) - (
+              (
+                ((w[2]+w[3])/2.0) + ((w[0]+w[1])/2.0)
+              )/2.0
+            )
+          )+' '+(
+            -1*(
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (h[3]+h[2])/2.0
+              )
+            )
+          )+' l '+(
+            ((w[2]+w[3])/2.0) - (
+              (
+                ((w[2]+w[3])/2.0)+((w[0]+w[1])/2.0)
+              )/2.0
+            )
+          )+' '+(
+            (
+              (h[0]+h[1])/2.0
+            )-(
+              (h[3]+h[2])/2.0
+            )
+          )
+          :
+          ''
+        )
+      };
+    }
+  }
+  else {
+    //value === 0
+    return {
+      face:  'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' ' +0+' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' ' +0,
+    };
+  }
+}
+
+function drawCylinder(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], serieslength: number, rowlength: number) {
+  let 
+    originindex = getOriginIndex(axis),
+    valueindex = getValueIndex(axis, value), 
+    {w, h} = getBaseDimensionAndValueHeight(axis, width, value, valueindex, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+  ;
+  if(value !== axis[originindex]) {
+    if(valueindex < originindex) {
+      //positive axis
+      return {
+        face: (
+          parseInt(
+            (
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (
+                  h[3]
+                  +
+                  h[2]
+                )/2.0
+              )
+            )+''
+          ) > 0?
+          'M '+((w[0]+w[1])/2.0)+' '+((h[2]+h[3])/2.0)
+          +' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[3] - ((h[2]+h[3])/2.0))) + ' ' + (w[3]-w[1]) + ' 0'
+          +' M '+((w[0]+w[1])/2.0)+' '+((h[2]+h[3])/2.0)
+          +' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[3] - ((h[2]+h[3])/2.0))) + ' ' + (w[2]-w[0]) + ' 0'
+          +' M '+((w[0]+w[1])/2.0)+' '+((h[3]+h[2])/2.0)+' l 0 '+(
+            (
+              (
+                (h[1]+h[0])/2.0
+              )-(
+                (h[3]+h[2])/2.0
+              )
+            )
+          )
+          +' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[1]+h[0])/2.0))) + ' ' + (w[3]-w[1]) + ' 0 l 0 '+(
+            -1*(
+              (
+                (h[1]+h[0])/2.0
+              )-(
+                (h[3]+h[2])/2.0
+              )
+            )
+          )
+          :
+          'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' ' +0+' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0'
+        )
+      }
+    }
+    else {
+      //negative axis
+      return {
+        face: 'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)
+        +' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' 0 '
+        +' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)
+        +' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0 '
+        +(
+          parseInt(
+            (
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (h[0]+h[1])/2.0
+              )
+            )+''
+          ) > 0?
+          ' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' l 0 '+(
+            (
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (
+                  h[0]
+                  +
+                  h[1]
+                )/2.0
+              )
+            )
+          )
+          +' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[3] - ((h[3]+h[2])/2.0))) + ' ' + (w[3]-w[1]) + ' 0 l 0 '+(
+            -1*(
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (
+                  h[0]
+                  +
+                  h[1]
+                )/2.0
+              )
+            )
+          )
+          :
+          ''
+        )
+      };
+    }
+  }
+  else {
+    //value === 0
+    return {
+      face: 'M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[3] - ((w[3] + w[1])/2.0))+' '+ (2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[3]-w[1]) + ' ' +0+' M '+((w[0]+w[1])/2.0)+' '+((h[0]+h[1])/2.0)+' q '+(w[2] - ((w[2] + w[0])/2.0))+' '+ (-2*(h[1] - ((h[0]+h[1])/2.0))) + ' ' + (w[2]-w[0]) + ' 0',
+    };
+  }
+}
+
+function drawPyramid(rowindex: number, seriesindex: number, value: number, width: number, yaxisunit: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], serieslength: number, rowlength: number) {
+  let 
+    originindex = getOriginIndex(axis),
+    valueindex = getValueIndex(axis, value), 
+    {w, h} = getBaseDimensionAndValueHeight(axis, width, value, valueindex, originindex, seriesindex, rowindex, yaxisunit, longestaxisnumberlength, space, depth, padding, serieslength, rowlength)
+  ;
+  if(value !== axis[originindex]) {
+    if(valueindex < originindex) {
+      //positive axis
+      return {
+        face: 
+          parseInt(
+            (
+              (
+                (h[0]+h[1])/2.0
+              )-(
+                (h[3]+h[2])/2.0
+              )
+            )+''
+          ) > 0?
+          ' M '+w[1]+' '+h[1]+' l '+(
+              w[0]-w[1]
+            )+' '+(
+              -1*(
+                h[1]-(
+                  (h[3]+h[2])/2.0
+                )
+              )
+            )+' '+(
+              w[3] - w[0]
+            )+' '+(
+              h[1]-(
+                (h[3]+h[2])/2.0
+              )
+            ) + ' M '+w[0]+' '+(
+              (h[3]+h[2])/2.0
+            )+' l '+(w[2] - w[0])+' '+(
+              h[0]-((h[3]+h[2])/2.0)
+            )+' '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])
+            : 
+            'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+      }
+    }
+    else {
+      //negative axis
+      return {
+        face: 
+        'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+        +(
+          parseInt(
+            (
+              (
+                (h[3]+h[2])/2.0
+              )-(
+                (h[0]+h[1])/2.0
+              )
+            )+''
+          ) > 0?
+          ' M '+w[1]+' '+h[1]+' l '+(
+              w[0]-w[1]
+            )+' '+(
+              -1*(
+                h[1]-(
+                  (h[3]+h[2])/2.0
+                )
+              )
+            )+' '+(
+              w[3] - w[0]
+            )+' '+(
+              h[1]-(
+                (h[3]+h[2])/2.0
+              )
+            ) + ' M '+w[0]+' '+(
+              (h[3]+h[2])/2.0
+            )+' l '+(w[2] - w[0])+' '+(
+              h[0]-((h[3]+h[2])/2.0)
+            )+' '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])
+            : 
+            ''
+          )
+      };
+    }
+  }
+  else {
+    //value === 0
+    return {
+      face: 'M '+w[1]+' '+h[1]+' l '+(w[0]-w[1])+' '+(-1*(h[1]-h[0]))+' '+(w[2]-w[0]) + ' 0 '+(-1*(w[2]-w[3]))+' '+(h[1]-h[0])+ ' '+(-1*(w[3]-w[1]))+' 0 '
+    };
+  }
+}
+
+function generateRandomColor() {
+  let colors = {
+    aqua: "#00ffff",
+    black: "#000000",
+    blue: "#0000ff",
+    brown: "#a52a2a",
+    darkblue: "#00008b",
+    darkcyan: "#008b8b",
+    darkgrey: "#a9a9a9",
+    darkgreen: "#006400",
+    darkkhaki: "#bdb76b",
+    darkolivegreen: "#556b2f",
+    darkorange: "#ff8c00",
+    darkred: "#8b0000",
+    darksalmon: "#e9967a",
+    darkviolet: "#9400d3",
+    gold: "#ffd700",
+    green: "#008000",
+    indigo: "#4b0082",
+    khaki: "#f0e68c",
+    lime: "#00ff00",
+    magenta: "#ff00ff",
+    olive: "#808000",
+    orange: "#ffa500",
+    pink: "#ffc0cb",
+    purple: "#800080",
+    red: "#ff0000",
+    yellow: "#ffff00"
+  },
+  result = '',
+  count = 0;
+  for (let prop in colors) {
+    if (Math.random() < 1/++count)
+      result = prop;
+  }
+  return result;
+}
+
+function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', width: number, height: number, longestaxisnumberlength: number, space: number = 10, depth: DepthControllerTypeFor3D, padding: PaddingType, axis: number[], column: DataTableType) {
+  let 
+    plots: {[key: string]: {series: /*{front: string; right: string; top: string;}*/{face: string;}[]; color: string[];};} = {}, 
+    color: string[] = []
   ;
   column.forEach((row, i) => {
     row.series.forEach((category, j) => {
-      plots.push(drawColumn(
-        i,
-        j,
-        category.value,
-        width, 
-        (height/(axis.length - 1)), 
-        longestaxisnumberlength, 
-        space, 
-        depth, 
-        padding, 
-        axis,
-        Object.entries(column[0].series).length,
-        Object.entries(column).length
-      ));
+      if(i === 0) {
+        let newcolor = '';
+        do {
+          newcolor = generateRandomColor();
+        }
+        while(
+          color.includes(newcolor) 
+          || (newcolor==='darkred' && color.includes('brown')) 
+          || (newcolor==='brown' && color.includes('darkred')) 
+          || (newcolor==='darkorange' && color.includes('orange')) 
+          || (newcolor==='orange' && color.includes('darkorange'))
+          || (newcolor==='gold' && color.includes('yellow')) 
+          || (newcolor==='yellow' && color.includes('gold'))
+          || (newcolor==='gold' && color.includes('orange')) 
+          || (newcolor==='orange' && color.includes('gold'))
+        );
+        color.push(newcolor);
+        console.log(color);
+      }
+      if(!((i+'') in plots)) {
+        plots = {
+          ...plots,
+          [i+'']: {
+            series: [],
+            color
+          }
+        }
+      }
+      if(plottype==='COLUMN') {
+        plots[i+''].series.push(drawColumn(
+          i,
+          j,
+          category.value,
+          width, 
+          (height/(axis.length - 1)), 
+          longestaxisnumberlength, 
+          space, 
+          depth, 
+          padding, 
+          axis,
+          Object.entries(column[0].series).length,
+          Object.entries(column).length
+        ));
+      }
+      else if(plottype==='CONE') {
+        plots[i+''].series.push(drawCone(
+          i,
+          j,
+          category.value,
+          width, 
+          (height/(axis.length - 1)), 
+          longestaxisnumberlength, 
+          space, 
+          depth, 
+          padding, 
+          axis,
+          Object.entries(column[0].series).length,
+          Object.entries(column).length
+        ));
+      }
+      else if(plottype==='CYLINDER') {
+        plots[i+''].series.push(drawCylinder(
+          i,
+          j,
+          category.value,
+          width, 
+          (height/(axis.length - 1)), 
+          longestaxisnumberlength, 
+          space, 
+          depth, 
+          padding, 
+          axis,
+          Object.entries(column[0].series).length,
+          Object.entries(column).length
+        ));
+      }
+      else {
+        plots[i+''].series.push(drawPyramid(
+          i,
+          j,
+          category.value,
+          width, 
+          (height/(axis.length - 1)), 
+          longestaxisnumberlength, 
+          space, 
+          depth, 
+          padding, 
+          axis,
+          Object.entries(column[0].series).length,
+          Object.entries(column).length
+        ));
+      }
     });
   });
   return plots;
 }
 
-function calculateAxisNumberCoordinates(axisnumber: number[], height: number, longestaxisnumberlength: number, depth: {width: number; height: number;}, padding: {top: number; bottom: number; left: number; right: number;}) {
+function calculateAxisNumberCoordinates(axisnumber: number[], height: number, longestaxisnumberlength: number, depth: DepthControllerTypeFor3D, padding: PaddingType) {
   let axisunit = height / (axisnumber.length - 1), axiscoordinates: {x: number; y: number;}[] = [];
   from(axisnumber)
     .pipe(
@@ -569,7 +1006,7 @@ function calculateAxisNumberCoordinates(axisnumber: number[], height: number, lo
   return axiscoordinates;
 }
 
-export function draw3DBoxAndPlot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', space: number = 10, depth: {width: number; height: number;}, fontsize: number, padding: {top: number; bottom: number; left: number; right: number;},  column: DataTable_3D_Charts_Type) {
+export function draw3DBoxAndPlot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', space: number = 10, depth: DepthControllerTypeFor3D, fontsize: number, padding: PaddingType,  column: DataTableType) {
   const 
     axisnumber = calculateAxisNumber(column),
     longestaxisnumberlength = calculateLongestAxisNumberLength(axisnumber, fontsize),

@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import type { DataTable_3D_Charts_Type } from "../type/";
+import type { DataTableType } from "../type/";
 import { draw3DBoxAndPlot3DBoxData, measureText } from "../utility/";
 import { ref, type Ref } from "vue";
 
 const 
   props = defineProps<{
-    data: DataTable_3D_Charts_Type;
+    data: DataTableType;
   }>(),
   drawboxandplot = draw3DBoxAndPlot3DBoxData(
     'COLUMN', 
@@ -23,18 +23,25 @@ const
   <div class="w-100 h-100 m-0 font-family background-color-fff font-size-1-rem font-weight-400 line-height-1-dot-5 color-212529 text-left">
     <svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" style="width: 100%; height: 100%;" aria-labelledby="title" role="img">
       <title id="title">Column Chart</title>
-      <g stroke="blue" style="font-size:10px;">
+      <g stroke="black" style="font-size:10px;">
         <template v-for="(axisnumber,i) in drawboxandplot.axisnumber">
           <text :x="drawboxandplot.axisnumbercoordinates[i].x - measureText(axisnumber+'', 10)" :y="drawboxandplot.axisnumbercoordinates[i].y + 3">{{ axisnumber }}</text>
         </template>
       </g>
       <g>
-        <template v-for="(planes, i) in drawboxandplot.draw3DBox">
+        <template v-for="planes in drawboxandplot.draw3DBox">
           <template v-if="planes.hastraceline">
             <template v-for="(line, i) in planes.tracelines">
-              <g stroke="blue">
-                <line :x1="line.x1" :x2="line.x2" :y1="line.y1" :y2="line.y2"></line>
-              </g>
+              <template v-if="drawboxandplot.axisnumber[i] === 0">
+                <g stroke="blue" style="stroke-width:3;">
+                  <line :x1="line.x1" :x2="line.x2" :y1="line.y1" :y2="line.y2"></line>
+                </g>
+              </template>
+              <template v-else>
+                <g stroke="blue">
+                  <line :x1="line.x1" :x2="line.x2" :y1="line.y1" :y2="line.y2"></line>
+                </g>
+              </template>
             </template>
           </template>
           <template v-if="(typeof planes.plane === 'string')">
@@ -43,7 +50,7 @@ const
             </g>
           </template>
           <template v-else>
-            <template v-for="(plane, i) in planes.plane">
+            <template v-for="plane in planes.plane">
               <g stroke="blue">
                 <line :x1="plane.x1" :x2="plane.x2" :y1="plane.y1" :y2="plane.y2"></line>
               </g>
@@ -52,12 +59,12 @@ const
         </template>
       </g>
       <g>
-        <template v-for="(points,i) in drawboxandplot.plot3DBoxData">
-          <g style="stroke-width:1;" stroke="white"  :stroke-opacity="0.7">
-            <polyline :points="points.front" />
-            <polyline :points="points.right" />
-            <polyline :points="points.top" />
-          </g>
+        <template v-for="side in drawboxandplot.plot3DBoxData">
+          <template v-for="(series, i) in side.series">
+            <g style="stroke-width:1;" stroke="lightgray" :fill="side.color[i]">
+              <path :d="series.face"/>
+            </g>
+          </template>
         </template>
       </g>
       <template v-for="(originplane, i) in drawboxandplot.originplane.plane">
