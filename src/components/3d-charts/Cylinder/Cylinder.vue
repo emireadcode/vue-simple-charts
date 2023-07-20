@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import type { DataTableType } from "../type/";
 import { draw3DBoxAndPlot3DBoxData, measureText } from "../utility/";
-import { ref, type Ref } from "vue";
 
 const 
   props = defineProps<{

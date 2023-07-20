@@ -446,6 +446,15 @@ function getExtraUnit(value: number, valueindex: number, yaxisunit: number, axis
   return extraunit
 }
 
+/*
+  w[0]           w[2]      h[0]
+    ---------------
+   /             /
+  /             /
+  --------------
+  w[1]         w[3]        h[1]
+*/
+
 function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: DepthControllerTypeFor3D, padding: PaddingType, serieslength: number, rowlength: number) {
   let  
     thetha = Math.atan(depth.height/depth.width),
@@ -457,6 +466,32 @@ function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, serie
     w = []
   ;
   for(let j=0; j<=i; j++) {
+    /*
+      -----------------------------------------------------------------------------------------------------------------------------
+     |       _________________________
+     |      /|                       |
+     |     / |                       |
+     |    /  |                       | 1 data point
+     |   /   |-----------------------| rightgap + rightwidth + rightgap = rightdepth = (2*rightgap) + rightwidth
+     |   |  /| h[0] _________       /|
+     |   | / |     /________/  h[1]/ | 2 data points
+     |   |/__|____________________/__| rightgap + rightwidth + rightgap + rightwidth + rightgap = (3*rightgap) + (2*rightwidth)
+     |   |   /                      /
+     |   |  /                      /
+     |   | /                      / h[0] when seriesindex = 0, j = 0, i = 1
+     |   |/______________________/  h[0] = top + (originindex*yaxisunit) + height from Origin line to H[0]
+     |                              where height from Origin line to H[0] = (rightgap*(0+1) + (0+0)*rightwidth)*sin(thetha)
+     |
+     |
+     |                              h[1] when seriesindex = 0, j = 1, i = 1
+     |                              h[1] = top + (originindex*yaxisunit) + height from Origin line to H[1]
+     |                              where height from Origin line to H[1] = (rightgap*(0+1) + (0+1)*rightwidth)*sin(thetha)
+     |
+     |
+     |
+     |
+     --------------------------------------------------------------------------------------------------------------------------------
+    */
     h.push(
       (padding.top + (originindex*yaxisunit) + (
         ((seriesindex + i)*rightgap) + ((seriesindex + j)*rightwidth)
@@ -477,6 +512,54 @@ function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, serie
 
   return {w, h};
 }
+
+
+/*
+  ==========================================
+                Positive axis
+  ==========================================
+
+          w[0]           w[2]      h[2]
+            ---------------
+           /             /
+          /             /
+          --------------
+          w[1]         w[3]        h[3]
+
+
+
+
+
+          w[0]           w[2]      h[0]
+            ---------------
+           /             /
+          /             /
+          --------------
+          w[1]         w[3]        h[1]
+
+  ==========================================
+                Negative axis
+  ==========================================
+
+          w[0]           w[2]      h[0]
+            ---------------
+           /             /
+          /             /
+          --------------
+          w[1]         w[3]        h[1]
+
+
+
+
+
+          w[0]           w[2]      h[2]
+            ---------------
+           /             /
+          /             /
+          --------------
+          w[1]         w[3]        h[3]
+
+*/
 
 function getBaseDimensionAndValueHeight(axis: number[], width: number, value: number, valueindex: number, originindex: number, seriesindex: number, rowindex: number, yaxisunit: number, longestaxisnumberlength: number, space: number, depth: DepthControllerTypeFor3D, padding: PaddingType, serieslength: number, rowlength: number) {
   let 
