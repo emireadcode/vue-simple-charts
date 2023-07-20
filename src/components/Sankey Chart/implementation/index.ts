@@ -343,7 +343,6 @@ function isItemMoveable(node: NodeType, item: SankeyTreeType[string], highestpos
   for(let i=(itemfoundpos+1); i<=(highestposofparentsinnode+1); i++) {
     entered = true;
     if(i in node) {
-      console.log(i);
       from(Object.values(item.parentanditsweightinparent))
         .forEach(parent => {
           from(node[i])
@@ -470,20 +469,24 @@ function isDeepStrictlyEqual(curnode: NodeType, prevnode: NodeType) {
     bothequal = false;
   }
   else {
-    
+    if(JSON.stringify(curnode) === JSON.stringify(prevnode)) {
+      bothequal = true;
+    }
+    else {
+      bothequal = false;
+    }
   }
   return bothequal;
 }
 
 function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
-  let counter = 0, node: NodeType = aggregateAllRootNodesIntoLevelZero(sankeytree), done = false;
+  let node: NodeType = aggregateAllRootNodesIntoLevelZero(sankeytree), done = false;
   if(node[0].length === 0) {
     node = randomlySetASingleRoot(sankeytree);
   }
-  let prev = JSON.parse(JSON.stringify(node));
+  let prevnode = JSON.parse(JSON.stringify(node));
   do {
     Object.values(sankeytree).forEach(item => {
-      counter++;
       if(!hasNoParents(item.parentanditsweightinparent)) {
         let 
           itemfoundpos = getParentOrItemFoundPosInNode(node, item.name),
@@ -502,16 +505,8 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
           ;
           if(itemfound) {
             if(!isItemAndParentLoopToEachOther(item.name, highestposofparentsinnode, node, sankeytree)) {
-              console.log("/////////////////////////////////////////////");
-              console.log(isItemMoveable(node, item, highestposofparentsinnode, itemfoundpos));
-              console.log(item);
-              console.log(JSON.parse(JSON.stringify(node)));
-              console.log("highestposofparentsinnode "+highestposofparentsinnode+" itemfoundpos "+itemfoundpos);
-              console.log("/////////////////////////////////////////////");
               if(isItemMoveable(node, item, highestposofparentsinnode, itemfoundpos)) {
                 node = moveItemFromCurrentPosToNewPos(itemfoundpos, highestposofparentsinnode, node, sankeytree, item);
-                console.log("NEW NODE AFTER ITEM MOVED")
-                console.log(JSON.parse(JSON.stringify(node)));
               }
             }
           }
@@ -540,14 +535,17 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
         }
       }
     });
-    if(isDeepStrictlyEqual(node, prev)) {
+    let curnode = JSON.parse(JSON.stringify(node));
+    console.log(curnode);
+    console.log(prevnode);
+    if(isDeepStrictlyEqual(curnode, prevnode)) {
       done = true;
     }
     else {
-      prev = JSON.parse(JSON.stringify(node));
+      prevnode = JSON.parse(JSON.stringify(node));
     }
   }
-  while(counter < 15000);
+  while(done === false);
   return node;
 }
 
@@ -604,7 +602,10 @@ export function createSankeyLinks(datatable: SankeyDataType) {
   });
   sankey = addFromsWithoutParents(datatable, sankey);
   let node = aggregateNodesIntoRespectiveLevels(sankey);
+  console.log("=======================================");
   console.log(node);
+  console.log("=======================================");
   console.log(sankey);
+  console.log("=======================================");
   return sankey;
 }
