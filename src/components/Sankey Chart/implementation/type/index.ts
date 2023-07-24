@@ -7,8 +7,9 @@ export type SankeyDataType = {
 export type SankeyTreeType = {
   [key: string]: {
     name: string;
-    weight: number;
-    parentanditsweightinparent: SankeyTreeParentType;
+    inputweight: number;
+    outputweight: number;
+    parentandchildweightinparent: SankeyTreeParentType;
   }
 };
 

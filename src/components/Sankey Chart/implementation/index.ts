@@ -1,109 +1,6 @@
 import type { FoundAndPosType, NodeType, SankeyDataType, SankeyTreeParentType, SankeyTreeType, ToBeStoredObjectType } from "./type/";
-import { from, filter, max, map, take } from 'rxjs';
-
-  /*[
-    {//
-        name: 'd',
-        parentanditsweightinparent: [
-            {
-                name: 'b',
-                weight: 0.97
-            }
-        ]
-    },
-    {//
-        name: 'p',
-        parentanditsweightinparent: [
-            {
-                name: 'a',
-                weight: 0.97
-            }
-        ]
-    },
-    {//
-        name: 'e',
-        parentanditsweightinparent: [
-            {
-                name: 'd',
-                weight: 0.87
-            }
-        ]
-    },
-    {//
-        name: 'a',
-        parentanditsweightinparent: [
-            {
-                name: 'f',
-                weight: 0.78
-            },
-            {
-                name: 'g',
-                weight: 0.32
-            }
-        ]
-    },
-    {//
-        name: 'g',
-        parentanditsweightinparent: [
-            {
-                name: 'f',
-                weight: 0.78
-            },
-            {
-                name: 'p',
-                weight: 0.67
-            }
-        ]
-    },
-    {//
-        name: 'c',
-        parentanditsweightinparent: [
-            {
-                name: 'a',
-                weight: 0.87
-            },
-            {
-                name: 'c',
-                weight: 0.87
-            }
-        ]
-    },
-    {//
-        name: 'f',
-        parentanditsweightinparent: [
-            {
-                name: 'g',
-                weight: 0.56
-            }
-        ]
-    },
-    {//
-        name: 'm',
-        parentanditsweightinparent: [
-            {
-                name: 'f',
-                weight: 0.45
-            }
-        ]
-    },
-    {//
-        name: 'b',
-        parentanditsweightinparent: [
-            {
-                name: 'a',
-                weight: 0.63
-            },
-            {
-                name: 'f',
-                weight: 0.27
-            }
-        ]
-    }
-  ]*/
-
-function calculateValuePercentageInNode(link: SankeyDataType[number], datatable: SankeyDataType) {
-  return 0;
-}
+import { from, filter, max, map, take, mergeMap, reduce } from 'rxjs';
+import { type Ref } from "vue";
 
 function hasNoParents(item: SankeyTreeParentType) {
   if (item == null) {
@@ -149,7 +46,7 @@ function aggregateAllRootNodesIntoLevelZero(sankeytree: SankeyTreeType) {
   };
   from(Object.values(sankeytree))
     .pipe(
-      filter((item, i) => hasNoParents(item.parentanditsweightinparent))
+      filter((item, i) => hasNoParents(item.parentandchildweightinparent))
     )
     .subscribe(
       root => node[0].push(root.name)
@@ -161,7 +58,7 @@ function aggregateAllRootNodesIntoLevelZero(sankeytree: SankeyTreeType) {
 function getAllParentsFoundStatusAndPos(itemname: string, node: NodeType, sankeytree: SankeyTreeType) {
   let 
     foundandpos: FoundAndPosType = [],
-    parents = sankeytree[removeWhiteSpaceAndToLowerCase(itemname)].parentanditsweightinparent
+    parents = sankeytree[removeWhiteSpaceAndToLowerCase(itemname)].parentandchildweightinparent
   ;
   Object.values(parents).forEach((parent, j) => {
     if(removeWhiteSpaceAndToLowerCase(itemname) !== removeWhiteSpaceAndToLowerCase(parent.name)) {
@@ -169,17 +66,6 @@ function getAllParentsFoundStatusAndPos(itemname: string, node: NodeType, sankey
     }
   });
   return foundandpos;
-}
-
-function areAllParentsFound(foundandpos: FoundAndPosType) {
-  let found = true;
-  foundandpos.forEach(item => {
-    if(!item.found) {
-      found = false;
-      return;
-    }
-  })
-  return found;
 }
 
 function getHighestIndexOfTruthfulFounds(foundandpos: FoundAndPosType) {
@@ -196,11 +82,11 @@ function getHighestIndexOfTruthfulFounds(foundandpos: FoundAndPosType) {
   return maxindex;
 }
 
-function addParentsAboveItemFoundPos(sankeytree: SankeyTreeType, node: NodeType, parentanditsweightinparent: SankeyTreeParentType, itemfoundpos: number) {
+function addParentsAboveItemFoundPos(sankeytree: SankeyTreeType, node: NodeType, parentandchildweightinparent: SankeyTreeParentType, itemfoundpos: number) {
   let newnode: NodeType = {};
   if((itemfoundpos-1) >= 0) {
     newnode = JSON.parse(JSON.stringify(node)) as NodeType;
-    Object.values(parentanditsweightinparent).forEach(parent => {
+    Object.values(parentandchildweightinparent).forEach(parent => {
       newnode[itemfoundpos-1].push(determineHowItemShouldBeStored(parent.name, sankeytree));
     });
   }
@@ -208,7 +94,7 @@ function addParentsAboveItemFoundPos(sankeytree: SankeyTreeType, node: NodeType,
     newnode = {
       0: []
     };
-    Object.values(parentanditsweightinparent).forEach(parent => {
+    Object.values(parentandchildweightinparent).forEach(parent => {
       newnode[0].push(determineHowItemShouldBeStored(parent.name, sankeytree));
     });
     Object.entries(node).forEach((n, i) => {
@@ -248,9 +134,9 @@ function getParentOrItemFoundPosInNode(node: NodeType, parentoritemname: string)
   return isParentOrItemFoundInNodeAndWhere(node, parentoritemname).pos;
 }
 
-function isAtLeastOneParentFoundInNode(node: NodeType, parentanditsweightinparent: SankeyTreeParentType) {
+function isAtLeastOneParentFoundInNode(node: NodeType, parentandchildweightinparent: SankeyTreeParentType) {
   let parentfound: boolean[] = [];
-  from(Object.values(parentanditsweightinparent))
+  from(Object.values(parentandchildweightinparent))
     .forEach(parent => {
       parentfound.push(isParentOrItemFoundInNodeAndWhere(node, parent.name).found);
     })
@@ -264,7 +150,7 @@ function isItemFoundInNode(node: NodeType, itemname: string) {
 
 function isParentOrItemFoundInNode(node: NodeType, item: SankeyTreeType[string]) {
   let 
-    parentfound = isAtLeastOneParentFoundInNode(node, item.parentanditsweightinparent), 
+    parentfound = isAtLeastOneParentFoundInNode(node, item.parentandchildweightinparent), 
     itemfound = isItemFoundInNode(node, item.name)
   ;
   return {parentfound, itemfound}
@@ -302,7 +188,7 @@ function isParentInNodeAt(highestposofparentsinnode: number, parentname: string,
 function isItemAndParentLoopToEachOther(itemname: string, highestposofparentsinnode: number, node: NodeType, sankeytree: SankeyTreeType) {
   let 
     itemandparentlooptoeachother = false,
-    parents = sankeytree[removeWhiteSpaceAndToLowerCase(itemname)].parentanditsweightinparent,
+    parents = sankeytree[removeWhiteSpaceAndToLowerCase(itemname)].parentandchildweightinparent,
     itemstoredby = determineHowItemShouldBeStored(itemname, sankeytree)
   ;
   if(typeof itemstoredby !== 'string') {
@@ -343,7 +229,7 @@ function isItemMoveable(node: NodeType, item: SankeyTreeType[string], highestpos
   for(let i=(itemfoundpos+1); i<=(highestposofparentsinnode+1); i++) {
     entered = true;
     if(i in node) {
-      from(Object.values(item.parentanditsweightinparent))
+      from(Object.values(item.parentandchildweightinparent))
         .forEach(parent => {
           from(node[i])
             .pipe(
@@ -429,7 +315,7 @@ function determineHowItemShouldBeStored(itemorparentname: string, sankeytree: Sa
       }
     }, 
     storebyobject = false,
-    itemparents = sankeytree[removeWhiteSpaceAndToLowerCase(itemorparentname)].parentanditsweightinparent
+    itemparents = sankeytree[removeWhiteSpaceAndToLowerCase(itemorparentname)].parentandchildweightinparent
   ;
   from(Object.values(sankeytree))
     .forEach((treeloop) => {
@@ -442,7 +328,7 @@ function determineHowItemShouldBeStored(itemorparentname: string, sankeytree: Sa
             }
             else {
               if(itemparentloop.name === treeloop.name) {
-                from(Object.values(treeloop.parentanditsweightinparent))
+                from(Object.values(treeloop.parentandchildweightinparent))
                   .pipe(
                     filter(parent => parent.name === itemorparentname)
                   )
@@ -487,7 +373,7 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
   let prevnode = JSON.parse(JSON.stringify(node));
   do {
     Object.values(sankeytree).forEach(item => {
-      if(!hasNoParents(item.parentanditsweightinparent)) {
+      if(!hasNoParents(item.parentandchildweightinparent)) {
         let 
           itemfoundpos = getParentOrItemFoundPosInNode(node, item.name),
           {parentfound, itemfound} = isParentOrItemFoundInNode(node, item)
@@ -528,7 +414,7 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
             node = addParentsAboveItemFoundPos(
               sankeytree,
               node, 
-              item.parentanditsweightinparent, 
+              item.parentandchildweightinparent, 
               itemfoundpos
             );
           }
@@ -536,8 +422,6 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
       }
     });
     let curnode = JSON.parse(JSON.stringify(node));
-    console.log(curnode);
-    console.log(prevnode);
     if(isDeepStrictlyEqual(curnode, prevnode)) {
       done = true;
     }
@@ -558,8 +442,9 @@ function addFromsWithoutParents(datatable: SankeyDataType, existinglink: SankeyT
         ...sankey,
         [fromKey]: {
           name: link.from,
-          weight: link.value,
-          parentanditsweightinparent: {}
+          inputweight: link.value,
+          outputweight: 0,
+          parentandchildweightinparent: {}
         }
       };
     }
@@ -567,7 +452,7 @@ function addFromsWithoutParents(datatable: SankeyDataType, existinglink: SankeyT
   return sankey;
 }
 
-export function createSankeyLinks(datatable: SankeyDataType) {
+export function createSankeyTree(datatable: SankeyDataType) {
   let sankey: SankeyTreeType = {};
   datatable.forEach((link, i) => {
     let 
@@ -575,22 +460,23 @@ export function createSankeyLinks(datatable: SankeyDataType) {
       fromKey = removeWhiteSpaceAndToLowerCase(link.from)
     ;
     if(toKey in sankey) {
-      sankey[toKey].parentanditsweightinparent = {
-        ...sankey[toKey].parentanditsweightinparent,
+      sankey[toKey].parentandchildweightinparent = {
+        ...sankey[toKey].parentandchildweightinparent,
         [fromKey]: {
           name: link.from,
           weight: link.value
         }
       };
-      sankey[toKey].weight+=link.value;
+      sankey[toKey].inputweight+=link.value;
     }
     else {
       sankey = {
         ...sankey,
         [toKey]: {
           name: link.to,
-          weight: link.value,
-          parentanditsweightinparent: {
+          inputweight: link.value,
+          outputweight: 0,
+          parentandchildweightinparent: {
             [fromKey]: {
               name: link.from,
               weight: link.value
@@ -601,11 +487,97 @@ export function createSankeyLinks(datatable: SankeyDataType) {
     }
   });
   sankey = addFromsWithoutParents(datatable, sankey);
-  let node = aggregateNodesIntoRespectiveLevels(sankey);
+  return sankey;
+}
+
+function drawSankeyNodes() {
+
+}
+
+function drawSankeyPaths() {
+
+}
+
+function drawSankeyNodesText() {
+
+}
+
+function getTotalValuePerLevel(sankeytree: SankeyTreeType, node: NodeType) {
+  let totalperlevel: number[] = [];
+  from(Object.values(node))
+    .forEach(level => {
+      let seed = 0;
+      from(level)
+        .pipe(
+          map(itemorparent => (typeof itemorparent === 'string')? removeWhiteSpaceAndToLowerCase(itemorparent) : Object.keys(itemorparent)[0]),
+          reduce((acc, key) => acc + ((sankeytree[key].outputweight>=sankeytree[key].inputweight)? sankeytree[key].outputweight : sankeytree[key].inputweight), seed)
+        )
+        .subscribe(sum => totalperlevel.push(sum))
+      ;
+    })
+  ;
+  return totalperlevel;
+}
+
+function calculateTotalOutputWeightOfNodesInEachLevel(sankeytree: SankeyTreeType, node: NodeType) {
+  let 
+    newsankeytree = JSON.parse(JSON.stringify(sankeytree)) as SankeyTreeType
+  ;
+  from(Object.values(node))
+    .forEach(level => {
+      from(level)
+        .forEach(itemorparent => {
+          let 
+            key = (typeof itemorparent === 'string')? removeWhiteSpaceAndToLowerCase(itemorparent) : Object.keys(itemorparent)[0],
+            seed = 0
+          ;
+          from(Object.values(newsankeytree))
+            .pipe(
+              mergeMap(parents => Object.values(parents.parentandchildweightinparent))
+            )
+            .pipe(
+              map(parent => {
+                return {name: removeWhiteSpaceAndToLowerCase(parent.name), weight: parent.weight};
+              }),
+              filter(parent => parent.name === key),
+              reduce((acc, one) => acc + one.weight, seed)
+            )
+            .subscribe(
+              outputweight => newsankeytree[key].outputweight = outputweight
+            )
+          ;
+        })
+      ;
+    })
+  ;
+  return newsankeytree;
+}
+
+function getChartAreaDimension(chartarea: Ref<HTMLDivElement | undefined>) {
+  return {
+    width: chartarea.value?.clientWidth,
+    height: chartarea.value?.clientHeight
+  };
+}
+
+export function drawSankeyChart(datatable: SankeyDataType, chartarea: Ref<HTMLDivElement | undefined>) {
+  let 
+    sankeytree = createSankeyTree(datatable), 
+    node = aggregateNodesIntoRespectiveLevels(sankeytree),
+    {width, height} = getChartAreaDimension(chartarea)
+  ;
+  sankeytree = calculateTotalOutputWeightOfNodesInEachLevel(sankeytree, node);
+
   console.log("=======================================");
   console.log(node);
   console.log("=======================================");
-  console.log(sankey);
+  console.log(sankeytree);
   console.log("=======================================");
-  return sankey;
+  console.log(getTotalValuePerLevel(sankeytree, node));
+
+  /*return {
+    nodes: drawSankeyNodes(),
+    paths: drawSankeyPaths(),
+    nodestext: drawSankeyNodesText()
+  };*/
 }
