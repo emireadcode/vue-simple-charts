@@ -1,5 +1,6 @@
+import type { PaddingType } from "@/components/3d-charts/type";
 import type { FoundAndPosType, NodeType, SankeyDataType, SankeyTreeParentType, SankeyTreeType, ToBeStoredObjectType } from "./type/";
-import { from, filter, max, map, take, mergeMap, reduce } from 'rxjs';
+import { from, filter, max, map, take, mergeMap, reduce, } from 'rxjs';
 import { type Ref } from "vue";
 
 function hasNoParents(item: SankeyTreeParentType) {
@@ -117,7 +118,7 @@ function isParentOrItemFoundInNodeAndWhere(node: NodeType, parentoritemname: str
           filter(child => child === removeWhiteSpaceAndToLowerCase(parentoritemname)),
           take(1)
         )
-        .subscribe(found => {
+        .subscribe(() => {
           pos = parseInt(next[0]);
           parentoritemfound = true;
         })
@@ -156,21 +157,7 @@ function isParentOrItemFoundInNode(node: NodeType, item: SankeyTreeType[string])
   return {parentfound, itemfound}
 }
 
-function isItemIncludeParent(itemloop: string[], parentname: string) {
-  let itemincludeparent = false;
-  from(itemloop)
-    .pipe(
-      map(item => removeWhiteSpaceAndToLowerCase(item)),
-      filter(item => item === parentname),
-      take(1)
-    )
-    .subscribe(
-      item => itemincludeparent = true
-    )
-  return itemincludeparent;
-}
-
-function isParentInNodeAt(highestposofparentsinnode: number, parentname: string, node: NodeType) {
+function isParentInNodeAtGivenLevel(highestposofparentsinnode: number, parentname: string, node: NodeType) {
   let parentinnodeatindex = false;
   from(node[highestposofparentsinnode])
     .pipe(
@@ -179,7 +166,7 @@ function isParentInNodeAt(highestposofparentsinnode: number, parentname: string,
       take(1)
     )
     .subscribe(
-      parentoritemname => parentinnodeatindex = true
+      () => parentinnodeatindex = true
     )
   ;
   return parentinnodeatindex;
@@ -201,14 +188,7 @@ function isItemAndParentLoopToEachOther(itemname: string, highestposofparentsinn
             && 
             (parent as ToBeStoredObjectType)[Object.keys((parent as ToBeStoredObjectType))[0]].loop.includes(itemname)
             &&
-            isItemIncludeParent(
-              (itemstoredby as ToBeStoredObjectType)[
-                Object.keys((itemstoredby as ToBeStoredObjectType))[0]
-              ].loop,
-              Object.keys((parent as ToBeStoredObjectType))[0]
-            )
-            &&
-            isParentInNodeAt(
+            isParentInNodeAtGivenLevel(
               highestposofparentsinnode, 
               Object.keys((parent as ToBeStoredObjectType))[0], 
               node
@@ -217,7 +197,7 @@ function isItemAndParentLoopToEachOther(itemname: string, highestposofparentsinn
         ),
       )
       .subscribe(
-        parent => itemandparentlooptoeachother = true
+        () => itemandparentlooptoeachother = true
       )
     ;
   }
@@ -240,7 +220,7 @@ function isItemMoveable(node: NodeType, item: SankeyTreeType[string], highestpos
               take(1)
             )
             .subscribe(
-              moveable => canbemoved = false
+              () => canbemoved = false
             )
           ;
           if(!canbemoved) {
@@ -303,7 +283,7 @@ function moveItemFromCurrentPosToNewPos(itemfoundpos: number, highestposofparent
 }
 
 function removeWhiteSpaceAndToLowerCase(text: string) {
-  return text.toLowerCase().replace(/\s*/g, "");
+  return (text as string).toLowerCase().replace(/\s*/g, "");
 }
 
 function determineHowItemShouldBeStored(itemorparentname: string, sankeytree: SankeyTreeType) {
@@ -333,7 +313,7 @@ function determineHowItemShouldBeStored(itemorparentname: string, sankeytree: Sa
                     filter(parent => parent.name === itemorparentname)
                   )
                   .subscribe(
-                    parent => {
+                    () => {
                       tobestored[removeWhiteSpaceAndToLowerCase(itemorparentname)].loop.push(treeloop.name);
                       storebyobject = true;
                     }
@@ -380,13 +360,12 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
         ;
         if(parentfound) {
           let 
-            foundandpos = getAllParentsFoundStatusAndPos(
-              item.name,
-              node, 
-              sankeytree
-            ),
             highestposofparentsinnode = getHighestIndexOfTruthfulFounds(
-              foundandpos
+              getAllParentsFoundStatusAndPos(
+                item.name,
+                node, 
+                sankeytree
+              )
             )
           ;
           if(itemfound) {
@@ -435,7 +414,7 @@ function aggregateNodesIntoRespectiveLevels(sankeytree: SankeyTreeType) {
 
 function addFromsWithoutParents(datatable: SankeyDataType, existinglink: SankeyTreeType) {
   let sankey = existinglink;
-  datatable.forEach((link, i) => {
+  Object.values(datatable).forEach((link, i) => {
     let fromKey = removeWhiteSpaceAndToLowerCase(link.from);
     if(!(fromKey in sankey)) {
       sankey = {
@@ -454,7 +433,7 @@ function addFromsWithoutParents(datatable: SankeyDataType, existinglink: SankeyT
 
 export function createSankeyTree(datatable: SankeyDataType) {
   let sankey: SankeyTreeType = {};
-  datatable.forEach((link, i) => {
+  Object.values(datatable).forEach((link, i) => {
     let 
       toKey = removeWhiteSpaceAndToLowerCase(link.to),
       fromKey = removeWhiteSpaceAndToLowerCase(link.from)
@@ -490,33 +469,85 @@ export function createSankeyTree(datatable: SankeyDataType) {
   return sankey;
 }
 
-function drawSankeyNodes() {
-
+function getZeroFilledArray(node: NodeType) {
+  let zerofilledarray: number[] = [];
+  Object.values(node).forEach(() => {
+    zerofilledarray.push(0);
+  });
+  return zerofilledarray;
 }
 
-function drawSankeyPaths() {
-
-}
-
-function drawSankeyNodesText() {
-
-}
-
-function getTotalValuePerLevel(sankeytree: SankeyTreeType, node: NodeType) {
-  let totalperlevel: number[] = [];
-  from(Object.values(node))
-    .forEach(level => {
-      let seed = 0;
-      from(level)
-        .pipe(
-          map(itemorparent => (typeof itemorparent === 'string')? removeWhiteSpaceAndToLowerCase(itemorparent) : Object.keys(itemorparent)[0]),
-          reduce((acc, key) => acc + ((sankeytree[key].outputweight>=sankeytree[key].inputweight)? sankeytree[key].outputweight : sankeytree[key].inputweight), seed)
-        )
-        .subscribe(sum => totalperlevel.push(sum))
+function getTotalWeightsPerLevel(sankeytree: SankeyTreeType, node: NodeType) {
+  let totalperlevel: number[] = getZeroFilledArray(node);
+  Object.entries(node)
+    .forEach(([nodekey, nodevalue]) => {
+      Object.values(nodevalue)
+        .forEach(nodevaluevalue => {
+          let 
+            key = (
+              (typeof nodevaluevalue !== 'string')? 
+                Object.keys(nodevaluevalue)[0]
+                :
+                removeWhiteSpaceAndToLowerCase(nodevaluevalue)
+            ),
+            i = isParentOrItemFoundInNodeAndWhere(node, key).pos
+          ;
+          Object.values(sankeytree[key].parentandchildweightinparent)
+            .forEach(parent => {
+              let j = isParentOrItemFoundInNodeAndWhere(node, parent.name).pos;
+              if(i <= j) {
+                for(let k=i; k<=j; k++) {
+                  totalperlevel[k]+=parent.weight;
+                }
+              }
+            })
+          ;
+          totalperlevel[parseInt(nodekey)]+=(
+            (sankeytree[key].outputweight>=sankeytree[key].inputweight)? 
+              sankeytree[key].outputweight 
+              :
+              sankeytree[key].inputweight
+          );
+        })
       ;
     })
   ;
   return totalperlevel;
+}
+
+function getIndividualNodeWeightsPerLevel(sankeytree: SankeyTreeType, node: NodeType) {
+  let nodeweights: number[][] = [];
+  from(Object.entries(node))
+    .forEach(level => {
+      from(level[1])
+        .forEach(itemorparent => {
+          let key = (typeof itemorparent === 'string')? removeWhiteSpaceAndToLowerCase(itemorparent) : Object.keys(itemorparent)[0];
+          if(nodeweights[parseInt(level[0])]) {
+            nodeweights[parseInt(level[0])].push(
+              (
+                (sankeytree[key].outputweight >= sankeytree[key].inputweight)? sankeytree[key].outputweight : sankeytree[key].inputweight
+              )
+            );
+          }
+          else {
+            nodeweights[parseInt(level[0])] = [
+              (
+                (sankeytree[key].outputweight >= sankeytree[key].inputweight)? sankeytree[key].outputweight : sankeytree[key].inputweight
+              )
+            ]
+          }
+        })
+      ;
+    })
+  ;
+  return nodeweights;
+}
+
+function getTotalWeightsAndIndividualNodeWeightsPerLevel(sankeytree: SankeyTreeType, node: NodeType) {
+  return {
+    totalperlevel: getTotalWeightsPerLevel(sankeytree, node), 
+    nodeweights: getIndividualNodeWeightsPerLevel(sankeytree, node)
+  };
 }
 
 function calculateTotalOutputWeightOfNodesInEachLevel(sankeytree: SankeyTreeType, node: NodeType) {
@@ -560,7 +591,275 @@ function getChartAreaDimension(chartarea: Ref<HTMLDivElement | undefined>) {
   };
 }
 
-export function drawSankeyChart(datatable: SankeyDataType, chartarea: Ref<HTMLDivElement | undefined>) {
+function getMaxTotalWeight(totalperlevel: number[]) {
+  let maxnum = 0;
+  from(totalperlevel)
+    .pipe(
+      max()
+    )
+    .subscribe(m => maxnum = m)
+  ;
+  return maxnum;
+}
+
+function findLevelWithMaxNode(node: NodeType) {
+  let maxnodeindex = 0, maxlength = Object.values(node)[0].length, i = 0;
+  from(Object.values(node))
+    .forEach(level => {
+      if(i > 0) {
+        if(maxlength <= level.length) {
+          maxlength = level.length;
+          maxnodeindex = i;
+        }
+      }
+      i++;
+    })
+  ;
+  return maxnodeindex;
+}
+
+function getWeightToHeightUnit(gap: number, height: number, padding: PaddingType, maxnodeindex: number, totalperlevel: number[], nodeweights: number[][]) {
+  return {
+    weight: nodeweights[maxnodeindex][0], 
+    height: (
+      nodeweights[maxnodeindex][0] / totalperlevel[maxnodeindex]
+    ) * (
+      (1 - gap) * (
+        (
+          totalperlevel[maxnodeindex] / getMaxTotalWeight(totalperlevel)
+        ) * (
+          height - (padding.top + padding.bottom)
+        )
+      )
+    )
+  };
+}
+
+function getNodeHeightsWeightToHeightUnitAndTotalPerLevel(gap: number, height: number, padding: PaddingType, sankeytree: SankeyTreeType, node: NodeType) {
+  let 
+    maxnodeindex = findLevelWithMaxNode(node),
+    {totalperlevel, nodeweights} = getTotalWeightsAndIndividualNodeWeightsPerLevel(
+      sankeytree,
+      node
+    ),
+    unit = getWeightToHeightUnit(gap, height, padding, maxnodeindex, totalperlevel, nodeweights)
+  ;
+  return {
+    unit,
+    nodeheights: convertNodeWeightsToHeights(nodeweights, unit),
+    totalperlevel
+  };
+}
+
+function convertNodeWeightsToHeights(nodeweights: number[][], unit: {weight: number; height: number}) {
+  let nodeheights = JSON.parse(JSON.stringify(nodeweights)) as number[][];
+  Object.entries(nodeheights)
+    .forEach(level => {
+      level[1].forEach((weight, i) => {
+        nodeheights[parseInt(level[0])][i] = (nodeheights[parseInt(level[0])][i] * unit.height) / unit.weight;
+      });
+    })
+  ;
+  return nodeheights;
+}
+
+function checkItemOrParentHasCircularNode(key: string, node: NodeType, sankeytree: SankeyTreeType) {
+  let 
+    circularnodeexists = false, 
+    i = isParentOrItemFoundInNodeAndWhere(node, key).pos
+  ;
+  Object.values(sankeytree[key].parentandchildweightinparent)
+    .forEach(parent => {
+      let j = isParentOrItemFoundInNodeAndWhere(node, parent.name).pos;
+      if(i <= j) {
+        circularnodeexists = true;
+        return;
+      }
+    })
+  ;
+  return circularnodeexists;
+}
+
+function checkNodeLevelHaveCircularNode(index: number, node: NodeType, sankeytree: SankeyTreeType) {
+  let circularnodeexists = false;
+  node[index].forEach(item => {
+    let 
+      key = (typeof item !== 'string')? Object.keys(item)[0] : removeWhiteSpaceAndToLowerCase(item)
+    ;
+    circularnodeexists = checkItemOrParentHasCircularNode(key, node, sankeytree);
+    if(circularnodeexists) {
+      return;
+    }
+  });
+  return circularnodeexists;
+}
+
+function checkLevelZeroAndEndLevelHaveCircularNode(node: NodeType, sankeytree: SankeyTreeType) {
+  return {
+    levelzerohavecircularnode: checkNodeLevelHaveCircularNode(0, node, sankeytree), 
+    endlevelhavecircularnode: checkNodeLevelHaveCircularNode((Object.keys(node).length - 1), node, sankeytree)
+  };
+}
+
+function calculateHorizonalSpace(nodebarwidth: number, width: number, padding: PaddingType, sankeytree: SankeyTreeType, node: NodeType) {
+  let 
+    quotient = (
+      width - (padding.left + padding.right) - nodebarwidth * Object.keys(node).length
+    ),
+    { levelzerohavecircularnode, endlevelhavecircularnode } = checkLevelZeroAndEndLevelHaveCircularNode(node, sankeytree),
+    horizontalspace = {beforelevelzero: 0, inbetweennodes: 0}
+  ;
+  if(levelzerohavecircularnode && endlevelhavecircularnode) {
+    let temp = quotient / Object.keys(node).length;
+    horizontalspace = {
+      beforelevelzero: temp / 8,
+      inbetweennodes: temp + ((5 * temp) / 4 * (Object.keys(node).length - 1))
+    };
+  }
+  else {
+    if(!levelzerohavecircularnode && !endlevelhavecircularnode) {
+      let temp = quotient / (Object.keys(node).length - 1);
+      horizontalspace = {
+        beforelevelzero: 0,
+        inbetweennodes: temp
+      };
+    }
+    else {
+      let temp = quotient / Object.keys(node).length;
+      horizontalspace = {
+        beforelevelzero: 0,
+        inbetweennodes: temp + ((7 * temp) / 8 * (Object.keys(node).length - 1))
+      };
+      if(levelzerohavecircularnode) {
+        horizontalspace.beforelevelzero = temp / 8;
+      }
+    }
+  }
+  return horizontalspace;
+}
+
+function getItemOrParentCircularNodeCount(key: string, node: NodeType, sankeytree: SankeyTreeType) {
+  let 
+    circularnodecount = 0, 
+    i = isParentOrItemFoundInNodeAndWhere(node, key).pos
+  ;
+  Object.values(sankeytree[key].parentandchildweightinparent)
+    .forEach(parent => {
+      let j = isParentOrItemFoundInNodeAndWhere(node, parent.name).pos;
+      if(i <= j) {
+        circularnodecount++;
+      }
+    })
+  ;
+  return circularnodecount;
+}
+
+function getHighestCircularInputAndOutputWeightPerNode(node: NodeType, sankeytree: SankeyTreeType) {
+  let 
+    input: {[key: string]: number;} = {},
+    output: {[key: string]: number;} = {}
+  ;
+  Object.values(node).forEach(level => {
+    level.forEach(item => {
+      let
+        inputkey = (typeof item !== 'string')? Object.keys(item)[0] : removeWhiteSpaceAndToLowerCase(item), 
+        i = isParentOrItemFoundInNodeAndWhere(node, inputkey).pos
+      ;
+      Object.values(sankeytree[inputkey].parentandchildweightinparent)
+        .forEach(parent => {
+          let 
+            j = isParentOrItemFoundInNodeAndWhere(node, parent.name).pos,
+            outputkey = removeWhiteSpaceAndToLowerCase(parent.name)
+          ;
+          if(i <= j) {
+            if(!(inputkey in input)) {
+              input = {
+                ...input,
+                [inputkey]: sankeytree[inputkey].parentandchildweightinparent[outputkey].weight
+              }
+            }
+            else {
+              input[inputkey]+=sankeytree[inputkey].parentandchildweightinparent[outputkey].weight;
+            }
+            if(!(outputkey in output)) {
+              output = {
+                ...output,
+                [outputkey]: sankeytree[inputkey].parentandchildweightinparent[outputkey].weight
+              };
+            }
+            else {
+              output[outputkey]+=sankeytree[inputkey].parentandchildweightinparent[outputkey].weight;
+            }
+          }
+        })
+      ;
+    });
+  });
+  return {
+    input,
+    output
+  }
+}
+
+function getRealNodePlusCircularPathCount(index: number, node: NodeType, sankeytree: SankeyTreeType) {
+  let nodecount = node[index].length;
+  node[index].forEach(item => {
+    let 
+      key = (typeof item !== 'string')? Object.keys(item)[0] : removeWhiteSpaceAndToLowerCase(item)
+    ;
+    nodecount+=getItemOrParentCircularNodeCount(key, node, sankeytree);
+  });
+  return nodecount;
+}
+
+function drawSankeyNodesAndCorrespondingTexts(nodebarwidth: number, gap: number, width: number, height: number, padding: PaddingType, sankeytree: SankeyTreeType, node: NodeType) {
+  let 
+    { nodeheights, totalperlevel, unit } = getNodeHeightsWeightToHeightUnitAndTotalPerLevel(gap, height, padding, sankeytree, node),
+    sankeynodes: {
+      [key: number]: {nodestart: {left: number; top: number;}; textstart: {left: number; top: number;}; height: number; text: string}[]
+    } = {},
+    levelzeroverticalgaponly = (
+      gap * (
+        (height - (padding.top + padding.bottom)) - ((totalperlevel[0] * unit.height) / unit.weight)
+      )
+    ) / (getRealNodePlusCircularPathCount(0, node, sankeytree) - 1),
+    { beforelevelzero, inbetweennodes } = calculateHorizonalSpace(nodebarwidth, width, padding, sankeytree, node)
+  ;
+  console.log(totalperlevel);
+  console.log(getHighestCircularInputAndOutputWeightPerNode(node, sankeytree));
+  /*Object.entries(newnode)
+    .forEach(([levelkey, levelvalue]) => {
+      let 
+        i = parseInt(levelkey),
+        left = padding.left + beforelevelzero + (i * (nodebarwidth + inbetweennodes))
+      ;
+      levelvalue.forEach((itemorparentname, j) => {
+        if(i === 0) {
+          if(i in sankeynodes) {
+            
+          }
+          else {
+            sankeynodes = {
+              //[i]: {
+
+              //}
+            };
+          }
+        }
+        else {
+
+        }
+      });
+    })
+  ;
+  */
+}
+
+function drawSankeyPaths() {
+
+}
+
+export function drawSankeyChart(nodebarwidth: number = 20, gap: number, padding: PaddingType, datatable: SankeyDataType, chartarea: Ref<HTMLDivElement | undefined>) {
   let 
     sankeytree = createSankeyTree(datatable), 
     node = aggregateNodesIntoRespectiveLevels(sankeytree),
@@ -573,7 +872,8 @@ export function drawSankeyChart(datatable: SankeyDataType, chartarea: Ref<HTMLDi
   console.log("=======================================");
   console.log(sankeytree);
   console.log("=======================================");
-  console.log(getTotalValuePerLevel(sankeytree, node));
+
+  drawSankeyNodesAndCorrespondingTexts(nodebarwidth, gap, (width as number), (height as number), padding, sankeytree, node);
 
   /*return {
     nodes: drawSankeyNodes(),

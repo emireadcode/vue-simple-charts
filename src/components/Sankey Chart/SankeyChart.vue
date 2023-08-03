@@ -11,7 +11,10 @@ const
 ;
 
 onMounted(() => {
-  drawSankeyChart( 
+  drawSankeyChart(
+    15,
+    0.50,
+    {top: 10, left: 20, right: 20, bottom: 15},
     props.data,
     chartarea
   );

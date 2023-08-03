@@ -41,7 +41,7 @@ function getHighestForFirstCalculation(minormax: number | MaxMinType, axistype: 
   return (
     axistype !== 'BOTH'?
     (
-      (axistype==='NEGATIVE'? (-1*(minormax as number)) : (minormax as number))
+      (axistype === 'NEGATIVE'? (-1*(minormax as number)) : (minormax as number))
     )
     : 
     (
@@ -57,7 +57,7 @@ function getNegativeOrPositiveAxisNumber(first: number, minormax: number | MaxMi
     let 
       highest = getHighestForFirstCalculation(minormax, axistype), 
       newfirst = first, 
-      multiplier = axistype==='NEGATIVE'? -1 : 1
+      multiplier = axistype === 'NEGATIVE'? -1 : 1
     ;
     do {
       axis.push(multiplier*newfirst);
@@ -70,18 +70,18 @@ function getNegativeOrPositiveAxisNumber(first: number, minormax: number | MaxMi
     let naxis = getNegativeOrPositiveAxisNumber(first, (minormax as MaxMinType).min, 'NEGATIVE');
     axis = [...paxis, 0, ...naxis];
   }
-  return axistype==='POSITIVE'? axis.reverse() : axis;
+  return axistype === 'POSITIVE'? axis.reverse() : axis;
 }
 
 function getZeroDotSomethingAxisNumber(minormax: number | MaxMinType, axistype: AxisStatusType) {
   let distortedhighest = getHighestForFirstCalculation(minormax, axistype), multiplier = 1;
   do {
     distortedhighest*=10;
-    if(parseInt(distortedhighest+'')===0) {
+    if(parseInt(distortedhighest+'') === 0) {
       multiplier*=10;
     }
   }
-  while(parseInt(distortedhighest+'')===0);
+  while(parseInt(distortedhighest+'') === 0);
   return getNegativeOrPositiveAxisNumber(
     getZeroDotSomethingFirstAxisNumber(
       multiplier, 
@@ -145,11 +145,11 @@ function getAtleastOneDotSomethingAxisNumber(minormax: number | MaxMinType, axis
   let distortedhighest = getHighestForFirstCalculation(minormax, axistype), multiplier = 1;
   do {
     distortedhighest/=10;
-    if(parseInt(distortedhighest+'')>0) {
+    if(parseInt(distortedhighest+'') > 0) {
       multiplier*=10;
     }
   }
-  while(parseInt(distortedhighest+'')>0);
+  while(parseInt(distortedhighest+'') > 0);
   return getNegativeOrPositiveAxisNumber(
     getAtleastOneDotSomethingFirstAxisNumber(
       multiplier, 
@@ -186,19 +186,19 @@ function calculateLongestAxisNumberLength(axis: number[], fontsize: number) {
 
 function calculateAxisNumber(column: DataTableType) {
   const {max, min} = findMaxAndMin(column);
-  if(max<0 && min<0) {
+  if(max < 0 && min < 0) {
     return [0, ...getAxisNumber(min, 'NEGATIVE')];
   }
-  else if(max===0 && min===0) {
+  else if(max === 0 && min === 0) {
     return [0];
   }
-  else if(max===0 && min<0) {
+  else if(max === 0 && min < 0) {
     return [0, ...getAxisNumber(min, 'NEGATIVE')];
   }
-  else if(max>0 && min===0) {
+  else if(max > 0 && min === 0) {
     return [...getAxisNumber(max, 'POSITIVE'), 0];
   }
-  else if(max>0 && min<0){
+  else if(max > 0 && min < 0){
     return getAxisNumber({max, min}, 'BOTH');
   }
   else {
@@ -354,7 +354,7 @@ function drawOriginPlane(width: number, height: number, space: number = 10, dept
   let plane: LineType[] = [], axisunit = height / (axis.length - 1);
   from(axis)
     .pipe(
-      findIndex(x => x===0)
+      findIndex(x => x === 0)
     )
     .subscribe(i => plane = 
       [
@@ -401,13 +401,13 @@ function draw3DBox(width: number, height: number, longestaxisnumberlength: numbe
   //draw front plane
   plane.push(drawPlane('FRONT', width, height, space, depth, padding, longestaxisnumberlength, axis));
   if(
-    (max<0 && min<0)
+    (max < 0 && min < 0)
     ||
-    (max===0 && min===0)
+    (max === 0 && min === 0)
     ||
-    (max===0 && min<0)
+    (max === 0 && min < 0)
     ||
-    (max>0 && min<0)
+    (max > 0 && min < 0)
   ) {
     //draw bottom plane
     plane.push(drawPlane('BOTTOM', width, height, space, depth, padding, longestaxisnumberlength));
@@ -428,7 +428,7 @@ function getValueIndex(axis: number[], value: number) {
 }
 
 function getOriginIndex(axis: number[]) {
-  return axis.findIndex(val => val===0);
+  return axis.findIndex(val => val === 0);
 }
 
 function getWidthAndGap(linewidth: number, divisor: number) {
@@ -467,7 +467,7 @@ function getBaseHeightAndWidthAtOrigin(width: number, originindex: number, serie
   ;
   for(let j=0; j<=i; j++) {
     /*
-      -----------------------------------------------------------------------------------------------------------------------------
+     -----------------------------------------------------------------------------------------------------------------------------
      |       _________________________
      |      /|                       |
      |     / |                       |
@@ -996,14 +996,14 @@ function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', wid
         }
         while(
           color.includes(newcolor) 
-          || (newcolor==='darkred' && color.includes('brown')) 
-          || (newcolor==='brown' && color.includes('darkred')) 
-          || (newcolor==='darkorange' && color.includes('orange')) 
-          || (newcolor==='orange' && color.includes('darkorange'))
-          || (newcolor==='gold' && color.includes('yellow')) 
-          || (newcolor==='yellow' && color.includes('gold'))
-          || (newcolor==='gold' && color.includes('orange')) 
-          || (newcolor==='orange' && color.includes('gold'))
+          || (newcolor === 'darkred' && color.includes('brown')) 
+          || (newcolor === 'brown' && color.includes('darkred')) 
+          || (newcolor === 'darkorange' && color.includes('orange')) 
+          || (newcolor === 'orange' && color.includes('darkorange'))
+          || (newcolor === 'gold' && color.includes('yellow')) 
+          || (newcolor === 'yellow' && color.includes('gold'))
+          || (newcolor === 'gold' && color.includes('orange')) 
+          || (newcolor === 'orange' && color.includes('gold'))
         );
         color.push(newcolor);
         console.log(color);
@@ -1017,7 +1017,7 @@ function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', wid
           }
         }
       }
-      if(plottype==='COLUMN') {
+      if(plottype === 'COLUMN') {
         plots[i+''].series.push(drawColumn(
           i,
           j,
@@ -1033,7 +1033,7 @@ function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', wid
           Object.entries(column).length
         ));
       }
-      else if(plottype==='CONE') {
+      else if(plottype === 'CONE') {
         plots[i+''].series.push(drawCone(
           i,
           j,
@@ -1049,7 +1049,7 @@ function plot3DBoxData(plottype: 'COLUMN' | 'CONE' | 'CYLINDER' | 'PYRAMID', wid
           Object.entries(column).length
         ));
       }
-      else if(plottype==='CYLINDER') {
+      else if(plottype === 'CYLINDER') {
         plots[i+''].series.push(drawCylinder(
           i,
           j,

@@ -79,22 +79,6 @@ import SankeyChart from './components/Sankey Chart/SankeyChart.vue';
       ]"
     ></sankey-chart>
     <!--<column :data="[
-        //jagaban start
-        {from: 'g', to: 'f', value: 2},
-        {from: 'g', to: 'a', value: 3},
-        {from: 'f', to: 'a', value: 4},
-        {from: 'f', to: 'b', value: 1},
-        {from: 'f', to: 'm', value: 5},
-        {from: 'a', to: 'b', value: 3},
-        {from: 'a', to: 'c', value: 3},
-        {from: 'b', to: 'd', value: 3},
-        {from: 'd', to: 'e', value: 3},
-        {from: 'f', to: 'c', value: 4},
-        {from: 'e', to: 'p', value: 3},
-        {from: 'm', to: 'a', value: 3},
-        //jagaban end
-      ]
-      [
         {
           name:'Category 1',
           series:[
